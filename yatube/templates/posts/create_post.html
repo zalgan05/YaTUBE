@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}
+  {% if is_edit %}
+    Редактировать пост
+  {% else %}
+    Новый пост
+  {% endif %}
+{% endblock %}
+
+
+{% block content %}
+      <div class="container py-5">
+        <div class="row justify-content-center">
+          <div class="col-md-8 p-5">
+            <div class="card">
+              <div class="card-header">
+                {% if is_edit %}
+                  Редактировать пост
+                {% else %}
+                  Новый пост
+                {% endif %}           
+              </div>
+              <div class="card-body"> 
+                {% load user_filters %}
+                {% if form.errors %}
+                    {% for field in form %} 
+                      {% for error in field.errors %}            
+                        <div class="alert alert-danger">
+                          {{ error|escape }}
+                        </div>
+                      {% endfor %}
+                    {% endfor %}
+                    {% for error in form.non_field_errors %}
+                      <div class="alert alert-danger">
+                        {{ error|escape }}
+                      </div>
+                    {% endfor %}
+                {% endif %}
+                {% include 'posts/includes/form.html' %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+{% endblock %}
