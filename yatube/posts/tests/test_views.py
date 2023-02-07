@@ -10,7 +10,7 @@ from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.core.cache import cache
 
-from ..models import Group, Post
+from ..models import Group, Post, Follow
 
 User = get_user_model()
 TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
@@ -73,6 +73,7 @@ class PostViewsTests(TestCase):
             reverse('posts:post_edit', kwargs={'post_id': self.post.id}):
             'posts/create_post.html',
             reverse('posts:post_create'): 'posts/create_post.html',
+            reverse('posts:follow_index'): 'posts/follow.html',
         }
         for reverse_name, template in templates_pages_names.items():
             with self.subTest(reverse_name=reverse_name):
@@ -173,6 +174,43 @@ class PostViewsTests(TestCase):
         response_clear = self.authorized_client.get(reverse('posts:index'))
         posts_clear = response_clear.content
         self.assertNotEqual(posts_clear, posts)
+
+    def test_profile_follow_and_unfollow_correct(self):
+        """Проверка возможности подписываться на других пользователей
+        и удалять их из подписок"""
+        cache.clear()
+        self.authorized_client.get(reverse(
+            'posts:profile_follow', kwargs={'username': self.user}))
+        self.assertTrue(Follow.objects.filter(
+            user=self.user_not_auth, author=self.user).exists())
+        self.authorized_client.get(reverse(
+            'posts:profile_unfollow', kwargs={'username': self.user}))
+        self.assertFalse(Follow.objects.filter(
+            user=self.user_not_auth, author=self.user).exists())
+
+    def test_new_post_appears_followers(self):
+        """Проверка: Новая запись пользователя появляется в ленте тех,
+        кто на него подписан и не появляется в ленте тех, кто не подписан."""
+        user_other = User.objects.create_user(username='Other')
+        self.authorized_client_other = Client()
+        self.authorized_client_other.force_login(user_other)
+        self.authorized_client.get(reverse(
+            'posts:profile_follow', kwargs={'username': self.user}))
+        post_new = Post.objects.create(
+            author=self.user,
+            text='Тестовый пост для подписчиков',
+        )
+        response = self.authorized_client.get(reverse('posts:follow_index'))
+        posts_authorized_client = response.context['page_obj']
+        response = self.authorized_client_other.get(reverse(
+            'posts:follow_index'))
+        posts_authorized_client_other = response.context['page_obj']
+        self.assertIn(
+            post_new, posts_authorized_client
+        )
+        self.assertNotIn(
+            post_new, posts_authorized_client_other
+        )
 
 
 class PaginatorViewsTest(TestCase):

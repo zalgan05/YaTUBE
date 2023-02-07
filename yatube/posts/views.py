@@ -1,8 +1,9 @@
-from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from .models import Post, Group, Comment, Follow
-from .forms import PostForm, CommentForm
+from django.shortcuts import get_object_or_404, redirect, render
+
+from .forms import CommentForm, PostForm
+from .models import Comment, Follow, Group, Post
 from .utils import paginate_post
 
 User = get_user_model()
